@@ -1,0 +1,188 @@
+<html>
+ <canvas id="MyCanvas" width="800" height="600"></canvas>
+<script>
+    var g_Canvas = document.getElementById("MyCanvas");
+    var g_Context = g_Canvas.getContext("2d");
+    var g_FPS = 30;
+    var g_TimeInterval = 1000/g_FPS;
+    var g_bulletCount = 15;
+    var g_BulletArray = new Array();
+    var g_Tank        = new C_Tank(350,250,25,70,75,"#00FF00")
+    var g_angle       = 0;
+    
+    function C_Bullet(l_x,l_y,l_r)
+    {
+        this.x              = l_x;
+        this.y              = l_y;
+        this.initialXpos    = l_x;
+        this.initialYpos    = l_y;
+        this.r              = l_r;
+        this.xdelta         = 0;
+        this.ydelta         = 0;
+        this.angle          = 0;
+        this.speed          = 30;
+        this.active         = false;
+        
+        this.m_draw = function m_draw(l_ctx)
+        {
+            if(this.active)
+            {
+                l_ctx.beginPath();
+                l_ctx.arc(this.x,this.y,this.r,0,Math.PI*2);
+                l_ctx.fillStyle = "#FF4500";
+                l_ctx.fill();
+                l_ctx.closePath();
+            }
+        }
+        
+        this.m_CheckBoundaryCollision = function m_CheckBoundaryCollision()
+        {
+            if(this.active)
+            {
+                if(this.x <= 0 || this.x >= 800 || this.y < 0 || this.y > 600)
+                {
+                     this.active   = false;
+                }
+            }
+        }
+        
+        this.m_moveBullet = function m_moveBullet()
+        {
+            if(this.active== 1)
+            {
+                this.xdelta = this.speed * Math.cos(this.angle);
+                this.ydelta = this.speed * Math.sin(this.angle);
+                
+                this.x += this.xdelta;
+                this.y += this.ydelta;
+            }
+        }
+    }
+    
+    function C_Tank(l_x,l_y,l_w,l_h,l_size,l_c)
+    {
+        this.x          = l_x;
+        this.y          = l_y;
+        this.w          = l_size;
+        this.h          = l_size;
+        this.color      = l_c;
+        this.turret_w   = l_w;
+        this.turret_h   = l_h;
+        this.angle      = 0;
+        
+        this.m_drawTurret = function m_drawTurret(l_ctx)
+        {
+            l_ctx.save()
+            l_ctx.translate(this.x+this.w/2,this.y+this.h/2);
+            l_ctx.rotate(this.angle);
+            l_ctx.fillStyle = this.color;
+            l_ctx.fillRect(this.turret_w/-2,-this.turret_h,this.turret_w,this.turret_h);
+            l_ctx.restore()
+        }
+
+        this.m_drawTank = function m_drawTank(l_ctx)
+        {
+            l_ctx.fillStyle = this.color;
+            l_ctx.fillRect(this.x,this.y,this.w,this.h);
+        }
+    }
+    
+    function f_initbullet()
+    {
+        for(var i=0; i<g_bulletCount; i++)
+        {
+            g_BulletArray[i] = new C_Bullet(g_Tank.x+g_Tank.w/2,g_Tank.y+g_Tank.h/2,10)
+        }
+    }
+    
+    function f_drawBullet()
+    {
+        for(var i=0; i<g_bulletCount; i++)
+        {
+            g_BulletArray[i].m_draw(g_Context);
+        }
+    }
+    
+    function f_moveBullet()
+    {
+        for(var i=0; i<g_bulletCount; i++)
+        {
+            g_BulletArray[i].m_moveBullet();
+        }
+    }
+    
+    function f_BulletCollision()
+    {
+        for(var i=0;i<g_bulletCount; i++)
+        {
+            g_BulletArray[i].m_CheckBoundaryCollision();
+        }
+    }
+    
+    function f_FireBullet(l_angle)
+    {
+        for(var i=0; i<g_bulletCount; i++)
+        {
+            if(!g_BulletArray[i].active)
+            {
+                g_BulletArray[i].x = g_Tank.x+g_Tank.w/2;
+                g_BulletArray[i].y = g_Tank.y+g_Tank.h/2;
+                g_BulletArray[i].angle = l_angle - Math.PI/2;
+                g_BulletArray[i].active = true;
+                return;
+            }
+        }
+    }
+    
+    function f_ClearCanvas()
+    {
+       g_Context.clearRect(0,0,g_Canvas.width,g_Canvas.height);
+       g_Context.strokeRect(0,0,g_Canvas.width,g_Canvas.height);            
+    }
+    
+    function f_mouseDown(e)
+    {
+        g_mouseX = e.clientX;
+        g_mouseY = e.clientY;
+        
+        
+        f_ClickShoot();
+    }
+    function f_mouseHover(e)
+    {
+        g_angle = Math.atan2(e.clientX - (g_Tank.x+g_Tank.w/2), -(e.clientY - (g_Tank.y+g_Tank.h/2)));
+        g_Tank.angle = g_angle ;
+    }
+    
+    function f_ClickShoot()
+    {
+        
+        if(g_mouseX>0 && g_mouseX<800)
+        {
+            if(g_mouseY>0 && g_mouseY<600)
+            {
+                console.log("shoot")
+                f_FireBullet(g_angle);
+            }
+        }
+    }
+    
+    f_initbullet();
+    
+    function GameLoop()
+    {
+        f_moveBullet();
+        f_BulletCollision();
+        
+        f_ClearCanvas();
+        
+        f_drawBullet();
+        g_Tank.m_drawTank(g_Context);
+        g_Tank.m_drawTurret(g_Context);
+    }
+    
+    setInterval(GameLoop,g_TimeInterval);
+    document.addEventListener("mousedown",f_mouseDown);
+    document.addEventListener("mousemove",f_mouseHover);
+    
+    </script>
